@@ -19,9 +19,17 @@ export class QueryEditor extends PureComponent<Props> {
     onRunQuery();
   };
 
+  onDataRetentionChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const { onChange, query, onRunQuery } = this.props;
+    onChange({ ...query, retainData: event.target.checked });
+    // executes the query
+    onRunQuery();
+  };
+
+
   render() {
     const query = defaults(this.props.query, defaultQuery);
-    const { queryText, constant } = query;
+    const { queryText, constant, retainData } = query;
 
     return (
       <div className="gf-form">
@@ -32,6 +40,13 @@ export class QueryEditor extends PureComponent<Props> {
           label="No. Max. Points"
           type="number"
           step="1"
+        />
+        <FormField
+          width={10}
+          value={retainData}
+          onChange={this.onDataRetentionChange}
+          label="Retain only the last timestep"
+          type="checkbox"
         />
       </div>
     );

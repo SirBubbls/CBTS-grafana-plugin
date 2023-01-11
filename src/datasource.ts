@@ -7,6 +7,7 @@ import {
   LoadingState,
   DataSourceInstanceSettings,
   CircularDataFrame,
+  MutableDataFrame,
   FieldType,
 } from '@grafana/data';
 
@@ -28,20 +29,37 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
   query(options: DataQueryRequest<MyQuery>): Observable<DataQueryResponse> {
     let uri  = `${this.endpoint}?apikey=${this.key}:${this.port}`
     const socket = new WebSocket(uri);
-    const frame = new CircularDataFrame({
-      append: 'tail',
-      capacity: options.targets[0].constant,
-    });
-    frame.addField({ name: 'time', type: FieldType.time});
-    frame.addField({ name: 'X', type: FieldType.number });
-    frame.addField({ name: 'Y', type: FieldType.number });
-    frame.addField({ name: 'object_class', type: FieldType.number });
-    frame.addField({ name: 'object_id', type: FieldType.number });
+
+    function createDataFrame() {
+      var frame = new CircularDataFrame({
+	append: 'tail',
+	capacity: options.targets[0].constant,
+      });
+      frame.addField({ name: 'time', type: FieldType.time});
+      frame.addField({ name: 'X', type: FieldType.number });
+      frame.addField({ name: 'Y', type: FieldType.number });
+      frame.addField({ name: 'object_class', type: FieldType.number });
+      frame.addField({ name: 'object_id', type: FieldType.number });
+      return frame
+    }
+    var frame = createDataFrame();
 
     return new Observable<DataQueryResponse>(subscriber => {
       socket.addEventListener('message', function (event) {
         const parsed = JSON.parse(event.data);
-        parsed.object_epsg4326.map((coords, i)  => frame.add({ object_id: parsed.object_id[i], class:parsed.object_class[i], time: parsed.time, X:  coords[0], Y :coords[1]}));
+	if (options.targets[0].retainData) {
+          frame = createDataFrame();
+	}
+
+        parsed.object_epsg4326.map((coords, i: number)  => frame.add(
+          {
+	    object_id: parsed.object_id[i],
+	    class: parsed.object_class[i],
+	    time: parsed.time,
+	    X: coords[0],
+	    Y: coords[1]
+	  }
+        ));
         subscriber.next({
           data: [frame],
           state: LoadingState.Streaming
