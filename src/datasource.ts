@@ -54,7 +54,7 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
         parsed.object_epsg4326.map((coords, i: number)  => frame.add(
           {
 	    object_id: parsed.object_id[i],
-	    class: parsed.object_class[i],
+	    object_class: parsed.object_class[i],
 	    time: parsed.time,
 	    X: coords[0],
 	    Y: coords[1]
